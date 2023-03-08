@@ -32,8 +32,8 @@ This repository contains:
 
 (1) R scripts to compare the runtime of Ms.FPOP, Ms.PELT, FPOP, PELT.
 
-    => To reproduce Figure 1 and Figure 3 you should look at runtime_cmp_gr.R 
-       and runtime_cmp_al.R in the R repository. 
+    => To reproduce Figure 1, Figure 3 and Figure D.8 you should look at 
+       runtime_cmp_gr.R and runtime_cmp_al.R in the R repository. 
 
 (2) R script to compare the runtime of sampling strategies of future changepoint 
     candidates in Ms.FPOP.
