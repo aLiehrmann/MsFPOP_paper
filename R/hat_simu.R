@@ -196,13 +196,13 @@ theme(
 print(g1)
 
 #- log-ratio ------------------------------------------------------------------#
-res_4 <- res_3[res_3$method == "PhiFPOP",]
+res_4 <- res_3[res_3$method == "Ms.FPOP",]
 res_4$method <- NULL
-res_4$rate <- log2((res_3[res_3$method == "PhiFPOP",]$rate+1)/
-    (res_3[res_3$method == "FPOP",]$rate+1))
-res_4$rate <- res_3[res_3$method == "PhiFPOP",]$rate/
+res_4$rate <- log2((res_3[res_3$method == "Ms.FPOP",]$rate+1)/
+    (res_3[res_3$method == "Ms.FPOP",]$rate+1))
+res_4$rate <- res_3[res_3$method == "Ms.FPOP",]$rate/
     res_3[res_3$method == "FPOP",]$rate
-res_4$rate <- log2((res_3[res_3$method == "PhiFPOP",]$rate)/
+res_4$rate <- log2((res_3[res_3$method == "Ms.FPOP",]$rate)/
     (res_3[res_3$method == "FPOP",]$rate))
 
 g2 <- ggplot(

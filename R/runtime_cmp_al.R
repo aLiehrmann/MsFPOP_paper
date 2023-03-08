@@ -35,15 +35,6 @@ all_methods <- list(
       sampling_method = "all"
     )
   },
-  msFPOP_s4 = function(y) {
-    MsFPOP(
-      y     = y,
-      beta  = 2.25,
-      alpha = 9+2.25*log(length(y)),
-      sampling_method = "rand",
-      sampling_method_parameter = 4
-    )
-  },
   msFPOP_s2 = function(y) {
     MsFPOP(
       y     = y,
@@ -97,7 +88,6 @@ method   <- c(
   "msFPOP_all",
   "msFPOP_s2",
   "msFPOP_s3",
-  "msFPOP_s4", 
   "msPELT",
   "FPOP", 
   "PELT"
@@ -168,7 +158,6 @@ all_res$method <- factor(
     "msFPOP", 
     "msFPOP_s2", 
     "msFPOP_s3", 
-    "msFPOP_s4", 
     "msFPOP_all", 
     "PELT", 
     "FPOP", 
@@ -176,10 +165,14 @@ all_res$method <- factor(
   )
 )
 
+all_res$criterion<-NA
+all_res$criterion[grep(x=all_res$method, pattern="ms")] <- "multiscale penalized\nlikelihood"
+all_res$criterion[grep(x=all_res$method, pattern="ms", invert=TRUE)] <- "penalized likelihood"
+all_res$criterion <- factor(all_res$criterion)
 
-pdf("figures/runtime_cmp_al.pdf",width=10, height=9.5)
-ggplot(
-  data = all_res[all_res$n==10^5,],
+
+g1 <- ggplot(
+  data = all_res[all_res$n==10^6,],
   aes(
     x     = K, 
     y     = runtime, 
@@ -207,11 +200,50 @@ labs(
 ) +
 scale_color_discrete(
   labels=c(
-    "Ms.FPOP (rand 1)",
-    "Ms.FPOP (rand 2)",
-    "Ms.FPOP (rand 3)",
-    "Ms.FPOP (rand 4)",
-    "Ms.FPOP (all)",
+    "Ms.FPOP",
+    "PELT",
+    "FPOP"
+  )
+) +
+theme_bw()+
+theme(
+  text = element_text(size=25),
+  legend.text = element_text(size=15),
+  legend.title = element_text(size=20),
+  legend.position="bottom"
+)+
+guides(linetype = guide_legend(nrow = 2), col=guide_legend(nrow = 3))
+
+g2 <- ggplot(
+  data = all_res[all_res$n==10^5 & all_res$method %in% c("msFPOP","msPELT","FPOP","PELT"),],
+  aes(
+    x     = K, 
+    y     = runtime, 
+    color = method
+  )
+)+
+geom_point(alpha = 0.05)+
+geom_smooth(
+ se = TRUE, 
+ aes(linetype=criterion)
+)+
+scale_y_continuous(
+  tr = "log10", 
+  "runtime (s)"
+)+
+scale_x_continuous(
+  tr = "log10"
+)+
+xlab(
+  "true number of changepoints"
+)+
+labs(
+  color    = "method : ", 
+  linetype = "criterion : "
+) +
+scale_color_discrete(
+  labels=c(
+    "Ms.FPOP",
     "PELT",
     "FPOP",
     "Ms.PELT"
@@ -223,5 +255,60 @@ theme(
   legend.text = element_text(size=15),
   legend.title = element_text(size=20),
   legend.position="bottom"
-)
+)+
+guides(linetype = guide_legend(nrow = 2), col=guide_legend(nrow = 4))
+
+g3 <- ggplot(
+  data = all_res[all_res$n==10^5 & all_res$method %in% c("msFPOP","msFPOP_s2","msFPOP_s3", "msFPOP_all"),],
+  aes(
+    x     = K, 
+    y     = runtime, 
+    color = method
+  )
+)+
+geom_point(alpha = 0.05)+
+geom_smooth(
+ se = TRUE
+)+
+scale_y_continuous(
+  tr = "log10", 
+  "runtime (s)"
+)+
+scale_x_continuous(
+  tr = "log10"
+)+
+xlab(
+  "true number of changepoints"
+)+
+labs(
+  color    = "method : "
+) +
+scale_color_discrete(
+  labels=c(
+    "Ms.FPOP (rand 1)",
+    "Ms.FPOP (rand 2)",
+    "Ms.FPOP (rand 3)",
+    "Ms.FPOP (all)"
+  )
+) +
+theme_bw()+
+theme(
+  text = element_text(size=25),
+  legend.text = element_text(size=15),
+  legend.title = element_text(size=20),
+  legend.position="bottom"
+)+
+guides(col=guide_legend(nrow = 4))
+
+
+pdf("figures/runtime_cmp_al_0_1M.pdf",width=10, height=9.5)
+g2
+dev.off()
+
+pdf("figures/runtime_cmp_al_1M.pdf",width=10, height=9.5)
+g1
+dev.off()
+
+pdf("figures/supp_runtime_cmp_al_0_1M.pdf",width=10, height=9.5)
+g3
 dev.off()
