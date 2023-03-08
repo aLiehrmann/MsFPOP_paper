@@ -1,0 +1,521 @@
+---
+title: "Comparison of Approaches to Detecting Change-in-mean"
+author: "Guillem Rigaill and Paul Fearnhead"
+date: "10 february 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# MODIFIED VERSION 
+
+## Overview
+
+This document provides extensive simulation results comparing a range of different methods for detecting change-in-mean in a univariate data. These have been implemented in a way such that it should be possible to extend the comparison to other data scenarios; new methods; or different measures of performance. Full code is available at:
+https://github.com/guillemr/SomeSegSimu
+
+The simulation study is implemented by (i) specifying details for each data scenario; (ii) specifying functions that implement each changepoint detection method; and (iii) specifying functions that input the true and estimated segmentation and measure its accuracy. We first give examples of each of these types of functions, and then present results comparing the methods.”
+
+```{r setup, include=FALSE}
+#rm(list=ls())
+#knitr::opts_chunk$set(echo = TRUE)
+options(width = 100)
+library(parallel)
+library(data.table)
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+library(reshape2)
+
+## number of simu per dataset
+nrepeat <- 300
+mc.cores <- 75
+set.seed(10022020)
+```
+
+## Specifying a Data Scenario
+
+Each data scenario is defined by an S4 class DatasetDesc. 
+This class defines four features of the data scenario:
+
+- the name of the scenario;
+- a vector (bkp) that specifies the changepoints. This vector must start with 0 and end with the last data point, n;
+- a vector (mu) that species the mean within each of the segments
+- the standard deviation of the noise (sigma)
+
+
+From these we derive other relevant parameter such as the segment length, the signal length, the signal and others using the complete function.
+
+Here is the code for our first dataset.
+All other datasets are in the R file InitialDatasets.R.
+
+
+```{r dataset_initial}
+source("DatasetDesc.R")
+initialDatasetDesc <- list()
+i <- 1
+initialDatasetDesc[[i]] <- new("DatasetDesc", 
+        Name  = "Dt1", 
+        bkp   = as.integer(c(0, 204, 266, 307, 471, 511, 819, 901, 1331, 1556, 1597, 1658, 2048)),
+        mu    = c(0, 14.64, -3.66, 7.32, -7.32, 10.98, -4.39, 3.29, 19.03,7.68, 15.37, 0),
+        sigma = 10
+)
+i <- i+1
+source("InitialDatasets.R")
+d = 300
+initialDatasetDesc <- lapply(
+  initialDatasetDesc,
+  function(x){
+    if (min(x@bkp)<d) {
+      x@bkp <- as.integer(d/min(diff(x@bkp)) * x@bkp)
+    }
+    x
+  }
+)
+initialDatasetDesc <- lapply(initialDatasetDesc, complete)
+```
+
+## Simulating datasets
+
+The dataDesc S4 class has a function to simulate a profile (simulation).
+
+Three options are available for the simulation :
+
+- a i.i.d Gaussian : "Gauss"
+
+- a i.i.d Student of degree 10 : "Stud"
+
+- an AR with an auto-correlation of 0.3 : "ARMA"
+
+Here we plot an example profile for each dataset.
+
+```{r show, message=F, results="hide", message=F, fig.height=20}
+allplots <- lapply(initialDatasetDesc, FUN=function(dataDesc){
+  y <- simulation(dataDesc)
+  dataY <- data.frame(x=1:length(y), y=y, smt=dataDesc@signal)
+  plot_data <- ggplot(dataY, aes(x=x, y=y)) + 
+    geom_point(size=0.2) + geom_line(aes(x=x, y=smt, color="red")) + 
+    geom_vline(xintercept = dataDesc@bkp, color="blue") + 
+    theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    ggtitle(paste0("Dataset: ", dataDesc@Name))
+  plot_data
+  
+})
+lay <- rbind(1:2, 3:4, 5:6,  rep(7, 2), rep(8, 2), rep(9, 2), 10:11)
+```
+
+## Extension of the Datasets
+
+For each scenario we provide two ways of changing aspects of the data:
+
+1. Varying signal strength: We can multiply the standard deviation by a factor. This is equivalent (after re-scaling) to scaling the change-in-mean at each changepoint.
+
+2. Varying data length: We multiply each segment length by a constant factor and divide the standard deviation by the square root of this factor. This ensure that as we vary the data set size the signal strength for each change is kept roughly constant.
+
+This is done using the scaleDesc and expandDesc of the DataDesc class.
+
+```{r dataset_expanding, fig.width=10, fig.height=5}
+
+scaledDatasetDesc <- unlist(
+  lapply(initialDatasetDesc, FUN=function(dataDesc){
+    lapply(c(1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8), 
+           FUN=function(alpha) scaleDesc(dataDesc, alpha))
+  })
+  )
+allGauss <- scaledDatasetDesc
+allNoise <- allGauss
+allNoise <- mclapply(allNoise, FUN=function(dataDesc) {simulateMany(dataDesc, nrepeat=nrepeat)}, mc.cores=mc.cores)
+
+```
+
+
+
+
+## Definition of the changepoint methods
+
+We store changepoint methods as an S4 class with a name and a function taking the data as an input and returning a set of changes.
+Here is the code for our first changepoint method.
+All others are defined in the InitialCptMethod.R F file.
+
+Similarly we define a S4 class for methods returning a fixed number of changepoints.
+All methods are defined in the R file InitialCptMethod_knowK.R.
+We will use these methods to get the performance if the number of changes is known.
+
+
+```{r cpt_method, message=F}
+source("utils/all_packages_and_a_few_functions.R")
+source("CptMethod.R")
+library(fpopw)
+library(MsFPOP)
+library(mosum)
+listMethod <- list()
+i <- 1
+listMethod[[i]] <- new("CptMethod", 
+  Name = "Ms.FPOP", 
+  Fun = function(y){
+    MsFPOP(
+      y     = y, 
+      beta  = 2.25, 
+      alpha = 9+2.25*log(length(y))
+    )$changepoints
+  }
+)
+i <- i+1
+listMethod[[i]] <- new("CptMethod", 
+  Name = "FPOP", 
+  Fun = function(y){
+    Fpop(x=y, lambda=2*log(length(y)))$t.est
+  }
+)
+i <- i+1
+listMethod[[i]] <- new("CptMethod", 
+                       Name = "mosum", 
+                       Fun = function(y){
+                         res <- multiscale.localPrune(y)
+                         if (length(res$cpts) == 0) cpt <- length(y) else cpt <- c(res$cpts, length(y))
+                         return( cpt )  
+                       })
+```
+
+Here is a list of all methods :
+
+
+- "Pelt-Dft" : pelt (changepoint package) with its default parameter.
+- "Fpop-Yao" : fpop (gfpop package) with the penalty of Yao 1989.
+- "Rpop-Yao" : robust fpop (gfpop package) with the penalty of Yao 1989.
+- "Fpop-Yao-Ha" : fpop with the penalty of Yao 1989 and the Hall estimate of the variance (rather than the MAD based estimate).
+- "Fpop-Yao-L4" :  fpop with the penalty of Yao 1989 and minimum segment length of 4.
+- "Fpop-Crops-Lb" : Crops and fpop with the penalty of Lebarbier 2005. The min penalty is set to $2\log(n) - 2*\log(K_{max})+3$ with $K_{max}=\min(n/2-1, 3*n/\log(n))$ and the max penalty to $2\log(n)+3$.
+- "Fpop-Crops-Lb-L4", Crops and fpop with the penalty of Lebarbier 2005 and minimum segment length of 4. The min penalty is set to $2\log(n) - 2*\log(K_{max})+3$ with $K_{max}=\min(n/4-1, 3*n/\log(n))$ and the max penalty to $2\log(n)+3$.
+- "Fpop-Crops-Lb-Ha", Crops and fpop with the penalty of Lebarbier 2005 and the Hall estimate of the variance.
+- "Fpop-Crops-Lb-Ha-L4", Crops and fpop with the penalty of Lebarbier 2005 and the Hall estimate of the variance and minimum segment length of 4.
+- "Fpop-Crops-Lb-Rob" : Crops and fpop using the biweight loss (gfpop package) with the penalty of Lebarbier 2005.
+- "Fpsn-Lb" : pDPA (jointseg package) with the penalty of Lebarbier 2005 (with maximum number of changepoint of $3n/\log(n)$.
+- "FDRseg-.1" : FDRseg with a quantile $\alpha$ of 0.1 (defaut). Quantile are estimated once for each $n$ using $1000/\alpha$ monte-carlo simulation rather than the default $50/\alpha$.
+- "FDRseg-.05" : FDRseg with a quantile alpha of 0.05.
+- "Bft-Tguh" : TGUH (Breakfast package) with its default parameters.
+- "Bft-Wbs" : WBS (Breakfast package) with its default parameters.
+- "Bft-Hyb" : Hybrid (TGUH/WBS) approach the breakfast package with its default parameters.
+- "Wbs-Sic" : WBS with the SIC criteria (wbs package).
+- "Wbs-Th1" : WBS with at threshold of 1 (Wbs package).
+- "Wbs2-.9", : WBS2 with a $\lambda$ of 0.9 (Wbs2 github code).
+- "Wbs2-.95" : WBS2 with a $\lambda$ of 0.95 (Wbs2 github code).
+- "IDetect" : IDetect (IDetect package) with its default parameters.
+- "mosum" : Multiscale local pruning approach (mosum package) with its default parameters.
+               
+Here is a list of all methods for a known K :
+
+- "MaxLik-K*" : pDPA (jointseg package) with known K.
+- "Bft-Wbs-K*" : WBS (wbs package) with known K.
+- "BinSeg-K*" : Binary Segmentation (wbs package) with known K.
+- "Rpop-K*" : Robust gfpop (gfpop package) with known K. In case K is larger than 100 the gfpop is not runned and it returns K=1.
+
+## Measuring segmentation accuracy
+
+The dataDesc S4 class includes a score function. It has one parameter which is the output of the Run function of the CptMethod S4 class (it includes a cpt and runtime).
+
+This function can be modified.
+
+We measure :
+
+- "mse" : the mse.
+- "K" : the absolute difference between the true number of changes and the estimated number of changes 
+- "ari" : 1 minus the ari between the true and estimated segmentations.
+- "time" : the runtime
+
+For all scores the closer to $0$ the better the method.
+
+# Running all approaches
+
+## Generating quantiles for fdrseg
+
+For FDRseg, to speed calculations it make sense to generate quantiles once.
+This is what we do below.
+
+```{r fdrseg, message=F, results='hide'}
+```
+
+
+## Running (K unknown) 
+
+All methods are used on all dataset after an initial
+scaling of the data using a difference based estimator
+of the standard deviation.
+
+Methods are scored for there mse, ARI, runtime and estimation of the true number of changepoints.
+
+```{r run_score}
+
+if(FALSE){
+lmat <- list()
+for(i in 1:length(allNoise)){
+print(i)
+dataDesc <- allNoise[[i]]
+lineScore <- list()
+ for(imet in 1:length(listMethod)){
+  cptMet <- listMethod[[imet]]
+  load(dataDesc@fileDt)
+  load(dataDesc@fileRs)
+  data <- toSaveDt$allDatasets[[1]]
+  #cptMet@Fun(data$data/data$sd.est)
+  output <- runMethod(object=cptMet, y=data$data/data$sd.est)
+  lineScore[[imet]] <- score(dataDesc, output, data$data)
+ }
+ lmat[[i]] <- do.call(rbind, lineScore)
+ lmat[[i]]$i <-i
+ 
+ lineScore <- list()
+ for(imet in 1:length(listMethod_knownK)){
+  cptMet <- listMethod_knownK[[imet]]
+  load(dataDesc@fileDt)
+  load(dataDesc@fileRs)
+  data <- toSaveDt$allDatasets[[1]]
+  #cptMet@Fun(data$data/data$sd.est)
+  output <- runMethodK(object=cptMet, y=data$data/data$sd.est, K = dataDesc@K)
+  lineScore[[imet]] <- score(dataDesc, output, data$data)
+ }
+ lmat[[i]] <- do.call(rbind, lineScore)
+ lmat[[i]]$i <-i
+}
+}
+
+
+for(dataDesc in allNoise){
+  load(dataDesc@fileDt)
+  load(dataDesc@fileRs)
+  
+  for(cptMet in listMethod){
+
+    ## if not already done run approach
+    if(is.null(toSaveRs$allMethods[[cptMet@Name]])){
+      
+      scoreMet <- mclapply(toSaveDt$allDatasets, FUN=function(data){
+        output <- runMethod(cptMet, data$data/data$sd.est)
+        lineScore <- score(dataDesc, output, data$data)
+        return(lineScore)
+       }, mc.cores=mc.cores)
+    
+      matScore <- rbindlist(scoreMet)
+      matScore$index <- 1:nrow(matScore)
+      matScore$method <- cptMet@Name
+      toSaveRs$allMethods[[cptMet@Name]] <- data.frame(matScore)
+      save(toSaveRs, file=dataDesc@fileRs)
+      
+    }
+  }
+}
+```
+
+## Running (K known)
+
+Methods are then score for there MSE, ARI, runtime and estimation of the true number of changepoints.
+The number of changepoints should always be correct (except for Robseg for large K*, there are some optimisation 
+issue due to segment length).
+
+
+```{r mlknownk}
+```
+
+
+# Results 
+
+## A rough summary
+
+
+We start by a fairly rough overview of the results.
+Lets define $Score_{mdi}^{(c)}$ the score of method $m$ for criteria $c$, on dataset $d$ and replicate $i$. 
+
+Here we consider that a method $m$ is better than a method $m'$ in terms of a score $c$ if 
+the number of times $m$ is at least as good than $m'$ is larger than the number of times
+$m'$ is at least as good as $m$. We then report how often $m$ is better than any $m'$. 
+In details :
+
+1) we count the number of times an approach is at least as good as another one in terms of mse, ari or K. Defining 
+$\mathbf{1}$ the indicator function, this is
+is $$S(m, m') = \sum_d \sum_i \mathbf{1}(Score_{mdi}^{(c)} \leq Score_{m'di}^{(c)})$$
+
+2) for each method $m$ we report (in percentage :percAE) the average $S(m, m')$ : $\frac{100}{M-1} \sum_{m'} S(m, m'),$ where $M$ is the number of methods. 
+
+3) we also count how many times $S(m, m')$ is strictly larger than $S(m',m)$ and rank approches based on this score.
+
+Below we report this for the Gauss, Student and ARMA simulations.
+The closer the final score is to 100 the better the approach is in terms of the criteria.
+The methods are sorted from smallest to largest based on the final MSE score.
+Unsurprisngly methods knowing $K$ have better results and are
+at the bottom of the table.
+
+```{r counting_per_dataset}
+
+Noises <- c("Gauss")
+score.Name <- c("ari", "mse", "K")
+allUnknown <- c("Ms.FPOP", "FPOP", "mosum")
+
+## COMPARE
+getCompareMat <- function(i_s, i_n, subsetMethods){
+  files <- list.files("simulated_dataset/Res/", pattern=Noises[i_n], full.names = T)
+  allScores <- lapply(files, function(file_){
+   load(file_)
+   dat <- sapply(toSaveRs$allMethods, FUN=function(x) x[[score.Name[i_s]]])
+   dat <- dat[, order(colnames(dat))]
+   dat <- dat[, colnames(dat) %in% subsetMethods]
+   dat
+  })
+
+  matAllScores <- do.call(rbind, allScores)
+  compareMat <- matrix(nr=ncol(matAllScores), nc=ncol(matAllScores)) 
+  ## atleast as Good (less than mse, ari, k...)
+  rownames(compareMat) <- colnames(matAllScores)
+  colnames(compareMat) <- colnames(matAllScores)
+  for(i in 1:ncol(compareMat)){
+    for(j in 1:ncol(compareMat)){
+    compareMat[i, j] <- mean(matAllScores[, i] <= matAllScores[, j], na.rm=T)
+  }
+  }
+  return(compareMat)
+}
+
+
+## VOTE
+getVote <- function(i_s, i_n, subsetMethods){
+ essai <- getCompareMat(i_s, i_n, subsetMethods)
+ countV <- (essai >= t(essai))
+ diag(countV) <- F
+ diag(essai)  <- 0
+ #round(100*rowSums(countV)/(nrow(countV)-1), 1)
+ # ranking with ex-aequo
+ data.frame(rank=match(rowSums(countV), sort(rowSums(countV), decreasing = T)),   
+        percAE=round(100*rowSums(essai)/(nrow(countV)-1)))
+}
+
+```
+
+For all methods not knowing K.
+
+```{r}
+
+## AT LEAST AS GOOD
+## Gauss All Unknown K
+perc <- do.call(cbind, lapply(1:3, FUN=getVote, i_n=1, subsetMethods=allUnknown))
+colnames(perc) <- paste(rep(score.Name, each=2), colnames(perc), sep="-")
+perc[order(perc[, 3]), ]
+```
+
+For a subset of methods not knowing K
+```{r}
+```
+
+For all methods knowing K
+```{r}
+```
+
+## A rough summary per dataset
+
+Here we report the score of the previous section computed per simulated datasets.
+That is again we consider that a method $m$ is better than a method $m'$ in terms of a score $c$ if 
+the number of times $m$ is at least as good than $m'$ is larger than the number of times
+$m'$ is at least as good as $m$. In totals there are 495 simulated datasets.
+We split those in 3 according to the noise type Gaus, Student or ARMA.
+and we represent the final score for MSE and K graphically.
+Datasets are regrouped in terms of the 11 initial datasets and sorted in terms of the
+number of changes.
+
+
+```{r per_dataset, fig.width=16, fig.height=12, cache=FALSE}
+
+## COMPARE PER DATASET
+getCompareMat_perDt <- function(i_s, i_n, subsetMethods){ ## i_s = ARI:1, MSE:2, K:3, i_n = Gauss:1, Stud:2, ARMA:3
+  files <- list.files("simulated_dataset/Res/", pattern=Noises[i_n], full.names = T)
+  allAtLeastAsGood <- lapply(files, function(file_){
+   load(file_)
+   dat <- sapply(toSaveRs$allMethods, FUN=function(x) x[[score.Name[i_s]]])
+   dat <- dat[, order(colnames(dat))]
+   dat <- dat[, colnames(dat) %in% subsetMethods]
+   compareMat <- matrix(nr=ncol(dat), nc=ncol(dat))
+   for(i in 1:ncol(compareMat)){
+    for(j in 1:ncol(compareMat)){
+    compareMat[i, j] <- sum(dat[, i] <= dat[, j], na.rm=T)
+    }
+   }
+   colnames(compareMat) <- rownames(compareMat) <- colnames(dat)
+   data.frame(Method = rownames(compareMat), score = rowSums(compareMat) - diag(compareMat), K=toSaveRs$description@K, n=toSaveRs$description@Lg,
+              dataset=toSaveRs$description@Name, sigma=toSaveRs$description@sigma)
+  })
+  data <- do.call(rbind, allAtLeastAsGood)
+  data$scoreN <- data$score / (nrepeat*(nlevels(data$Method)-1)) *100
+  subdata <- data[match(unique(data$dataset), data$dataset), ]
+  subdata$type <- "s"; subdata$type[grep("_x_", subdata$dataset)] <- "x"
+  subdata <- subdata[order(subdata$K, subdata$n, subdata$sigma), ]
+  data$Name <- factor(data$dataset, levels=as.vector(subdata$dataset))
+  ## plotting
+  
+  ## order first kstar approaches
+  istar    <- grep("K\\*", levels(data$Method))
+  if(length(istar)>0){
+  inotstar <- (1:nlevels(data$Method))[-c(istar)]
+  data$Method <- factor(  data$Method, levels = levels(data$Method)[c(istar, inotstar)])
+  }
+
+  data
+
+}
+```
+
+For all methods not knowing K.
+
+```{r, fig.width=16, fig.height=12}
+
+## GAUSS
+all <- lapply(1:3, FUN=getCompareMat_perDt, i_n=1, subsetMethods=allUnknown)
+saveRDS(all, "all.rds")
+```
+
+For a subset of methods not knowing K.
+
+```{r, fig.width=16, fig.height=12}
+```
+
+## A few datasets
+
+```{r a_few_datasets, echo=F, fig.width=12, fig.height=12, message=F, cache=FALSE}
+
+```
+
+
+## Detailed overview for 7 approaches
+
+Here for each of the 11 initial datasets we report the results
+of 7 approaches. For each initial datasets there are two scenarios:
+
+1. one where the size of the data is varied and the standard deviation vary with $\frac{1}{\sqrt{n}}$
+2. one where variance is varied and $n$ is kept constant.
+
+We have plot for the mean ARI,mean MSE, mean ability to recover the true number of changepoints and mean runtime. 
+The results are reported a a function of $n$ or $\sigma$.
+
+
+```{r ploting_scenario_unknownK, echo=F, fig.width=12, fig.height=12, message=F, cache=FALSE}
+}
+
+
+```
+
+
+## Detailed overview for 4 approaches knowing K
+
+Here for each of the 11 initial datasets we report the results
+of 4 approaches knowing K. For each initial datasets there are two scenarios:
+
+1. one where the size of the data is varied and the standard deviation vary with $\frac{1}{\sqrt{n}}$
+2. one where variance is varied and $n$ is kept constant.
+
+We have plot for the mean ARI, mean ability to recover the true number of changepoints, mean Mse and mean runtime. 
+The results are reported a a function of $n$ or $\sigma$.
+
+
+```{r ploting_scenario_knownK, echo=F, fig.width=12, fig.height=12, message=F, cache=FALSE}
+}
+
+
+```
+
+
