@@ -1,9 +1,16 @@
 #------------------------------------------------------------------------------#
-#- This file saves and plots the runtime of Ms.PELT, Ms.FPOP, FPOP and PELT ---#
+#- !! PLEASE CREATE THESE FOLDERS BEFORE running this script : ----------------#
+#- 'figures' and 'data' !! ----------------------------------------------------#
+#------------------------------------------------------------------------------#
+#- This script saves and plots the runtime of Ms.PELT, Ms.FPOP, FPOP and PELT -#
 #- on iid Gaussian signals of fixed size and an increasing number of segments -#
 #------------------------------------------------------------------------------#
 
 source("R/load.R")
+
+#------------------------------------------------------------------------------#
+#- simulations ----------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 #- create a signal of size n with varying number of segments (K) --------------#
 one_signal <- function(K, n, seed){
@@ -78,8 +85,10 @@ all_methods <- list(
 
 #- tested profile size --------------------------------------------------------#
 n        <- 10^5
+
 #- number of replicates by scenario -------------------------------------------#
 rep      <- 1:30
+
 #- number of segments ---------------------------------------------------------#
 K        <- c(1, seq(5, 50, by =5), seq(100, 1000, by =50))
 nb_seeds <- length(rep)*length(K)
@@ -119,12 +128,7 @@ params_2   <- expand.grid(
 )
 colnames(params_2) <- c("n", "rep", "K", "method")
 params_2$seeds <- rep(1:nb_seeds+2021, length(method))
-
-
 params <- rbind(params, params_2)
-
-
-#- simulations ----------------------------------------------------------------#
 all_res <- do.call(rbind,lapply(
   1:nrow(params),
   function(i) {
@@ -145,13 +149,15 @@ all_res <- do.call(rbind,lapply(
     )
   }
 ))
-
 saveRDS(all_res, "data/runtime_cmp_al.rds")
 
-#- figure ---------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
+#- figures --------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 all_res <- readRDS("data/runtime_cmp_al.rds")
 
+#- choose the order of levels -------------------------------------------------#
 all_res$method <- factor(
   all_res$method, 
   levels=c(
@@ -165,12 +171,13 @@ all_res$method <- factor(
   )
 )
 
+#- verbose --------------------------------------------------------------------#
 all_res$criterion<-NA
 all_res$criterion[grep(x=all_res$method, pattern="ms")] <- "multiscale penalized\nlikelihood"
 all_res$criterion[grep(x=all_res$method, pattern="ms", invert=TRUE)] <- "penalized likelihood"
 all_res$criterion <- factor(all_res$criterion)
 
-
+#- figure S3 ------------------------------------------------------------------#
 g1 <- ggplot(
   data = all_res[all_res$n==10^6,],
   aes(
@@ -214,6 +221,11 @@ theme(
 )+
 guides(linetype = guide_legend(nrow = 2), col=guide_legend(nrow = 3))
 
+pdf("figures/figure_S3.pdf",width=10, height=9.5)
+g1
+dev.off()
+
+#- figure 3 -------------------------------------------------------------------#
 g2 <- ggplot(
   data = all_res[all_res$n==10^5 & all_res$method %in% c("msFPOP","msPELT","FPOP","PELT"),],
   aes(
@@ -258,6 +270,11 @@ theme(
 )+
 guides(linetype = guide_legend(nrow = 2), col=guide_legend(nrow = 4))
 
+pdf("figures/figure_3.pdf",width=10, height=9.5)
+g2
+dev.off()
+
+#- figure S2 ------------------------------------------------------------------#
 g3 <- ggplot(
   data = all_res[all_res$n==10^5 & all_res$method %in% c("msFPOP","msFPOP_s2","msFPOP_s3", "msFPOP_all"),],
   aes(
@@ -300,15 +317,6 @@ theme(
 )+
 guides(col=guide_legend(nrow = 4))
 
-
-pdf("figures/runtime_cmp_al_0_1M.pdf",width=10, height=9.5)
-g2
-dev.off()
-
-pdf("figures/runtime_cmp_al_1M.pdf",width=10, height=9.5)
-g1
-dev.off()
-
-pdf("figures/supp_runtime_cmp_al_0_1M.pdf",width=10, height=9.5)
+pdf("figures/figure_S2.pdf",width=10, height=9.5)
 g3
 dev.off()

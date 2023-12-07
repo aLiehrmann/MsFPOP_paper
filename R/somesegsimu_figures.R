@@ -1,5 +1,8 @@
 #------------------------------------------------------------------------------#
-#- This file plots the the average number of times a method (among MOSUM, -----#
+#- !! PLEASE CREATE THESE FOLDERS BEFORE running this script : ----------------#
+#- 'figures' and 'data' !! ----------------------------------------------------#
+#------------------------------------------------------------------------------#
+#- This script plots the the average number of times a method (among MOSUM, ---#
 #- Ms.FPOP, FPOP) is at least as good as other methods (AE%) in terms of: -----#
 #- (1) absolute difference between the true number of changes and the ---------#
 #----- estimated number of changes (K), ---------------------------------------#

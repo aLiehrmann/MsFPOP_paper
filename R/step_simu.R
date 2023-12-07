@@ -1,10 +1,17 @@
 #------------------------------------------------------------------------------#
-#- This file compares the accuracy of Ms.FPOP and FPOP step-like iid ----------#
+#- !! PLEASE CREATE THESE FOLDERS BEFORE running this script : ----------------#
+#- 'figures' and 'data' !! ----------------------------------------------------#
+#------------------------------------------------------------------------------#
+#- This script compares the accuracy of Ms.FPOP and FPOP step-like iid --------#
 #- Gaussian signals (1 changepoint). We make vary the profile size and the ----#
 #- position of the changepoint. -----------------------------------------------#
 #------------------------------------------------------------------------------#
 
 source("R/load.R")
+
+#------------------------------------------------------------------------------#
+#- simulations ----------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 #- generate one iid gaussian signal with cp as position of changepoints -------# 
 one_signal <- function(
@@ -69,7 +76,10 @@ res <- mclapply(
 
 saveRDS(res, "data/step_simu.rds")
 
-#- figure ---------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+#- figures --------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 options(scipen=10000)
 res <- readRDS("data/step_simu.rds")
@@ -137,4 +147,4 @@ theme(
   legend.position = "bottom",
   strip.background = element_rect(fill="grey95")
 )
-ggsave("figures/supp_step_simu.jpeg", width=12, height=13, dpi=350)
+ggsave("figures/figure_S5.jpeg", width=12, height=13, dpi=350)

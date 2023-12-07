@@ -32,31 +32,31 @@ This repository contains:
 
 (1) R scripts to compare the runtime of Ms.FPOP, Ms.PELT, FPOP, PELT.
 
-    => To reproduce Figure 1, Figure 3 and Figure D.8 you should look at 
-       runtime_cmp_gr.R and runtime_cmp_al.R in the R repository. 
+    => To reproduce Figure 1, Figure 3, Figure S3 you should look 
+    at runtime_cmp_gr.R and runtime_cmp_al.R in the R repository. 
 
 (2) R script to compare the runtime of sampling strategies of future changepoint 
     candidates in Ms.FPOP.
 
-    => To reproduce Figure D.7, you should look at runtime_cmp_al.R in the R 
+    => To reproduce Figure S2, you should look at runtime_cmp_al.R in the R 
        repository.
     
 (3) R script to calibrate the constants ($\gamma$ and $\beta$) of the multiscale
     penalty. 
 
-    => To reproduce Figure 2 and Figure C.6, you should look at 
+    => To reproduce Figure 2 and Figure S1, you should look at 
        calibrateMsFPOP.R in the R repository.
     
 (4) R script to compare Ms.FPOP (multiscale penalty) and FPOP (BIC penalty) on 
     simulated step-like profiles.
 
-    => To reproduce Figure F.9, you should look at step_simu.R in the R 
+    => To reproduce Figure S5, you should look at step_simu.R in the R 
        repository.
     
 (5) R script to compare Ms.FPOP (multiscale penalty) and FPOP (BIC penalty) on 
     simulated hat-like profiles.
 
-    => To reproduce Figure 4 and Figure E.8, you should look at hat_simu.R in 
+    => To reproduce Figure 4 and Figure S4, you should look at hat_simu.R in 
        the R repository.
 
 (6) R scripts to compare MOSUM, Ms.FPOP (multiscale penalty) and FPOP (BIC penalty)
@@ -65,11 +65,11 @@ This repository contains:
     => To reproduce Figure 5, Figures G. and Figures H., you should look at 
        m_simulated_PerfStat.Rmd and somesegsimu_figures.R in the R repository.
     
-    
 ## References
 
-Liehrmann, A. and Rigaill, G. Ms.Fpop: An Exact and Fast Segmentation
-Algorithm With a Multiscale Penalty (2023). [add link to preprint]().
+[Liehrmann, A. and Rigaill, G. Ms.Fpop: An Exact and Fast Segmentation
+Algorithm With a Multiscale Penalty (2023)]( 	
+https://doi.org/10.48550/arXiv.2303.08723).
 
 ## SessionInfo
 

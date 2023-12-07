@@ -1,5 +1,8 @@
 #------------------------------------------------------------------------------#
-#- This file generates figures to calibrate the constants (beta = bl and ------#
+#- !! PLEASE CREATE THESE FOLDERS BEFORE running this script : ----------------#
+#- 'figures' and 'data' !! ----------------------------------------------------#
+#------------------------------------------------------------------------------#
+#- This script generates figures to calibrate the constants (beta = bl and ----#
 #- gamma = ql) of the multiscale penalty : ------------------------------------#
 #- (1) It repeatedly simulates iid gaussian signals with no changepoint and ---#
 #- varying size n. ------------------------------------------------------------#
@@ -11,6 +14,9 @@
 
 source("R/load.R")
 
+#------------------------------------------------------------------------------#
+#- simulations ----------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 logical_threads <- 70
 #- grid of parameter (beta and gammma) ----------------------------------------#
@@ -77,7 +83,12 @@ res_msfpop_2 <- do.call(rbind, lapply(
 )) 
 res_msfpop_2$fp_rate <- res_msfpop_2$FP/nb_rep
 
-#- proportions of replicates with > 0 changepoints, beta >= 2, supp figure ----#
+
+#------------------------------------------------------------------------------#
+#- figures --------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
+
+#- proportions of replicates with > 0 changepoints, beta >= 2, supp figure S1 -#
 g1 <- ggplot(
   res_msfpop_2[res_msfpop_2$bl >= 2,],
   aes(
@@ -94,7 +105,6 @@ facet_wrap(
   labeller = label_bquote(beta == .(bl))
 )+
 geom_line(size = 1)+
-#- significance level (0.95) --------------------------------------------------#
 geom_hline(
   yintercept = 0.95, 
   color      = "red", 
@@ -126,6 +136,51 @@ theme(
   strip.background = element_rect(fill="grey95")
 )
 
-pdf(widt=10, height=14, "figures/calibrate_MsFPOP.pdf")
+pdf(widt=10, height=14, "figures/figure_S1.pdf")
 g1
+dev.off()
+
+#- figure 2 -------------------------------------------------------------------#
+g2 <- ggplot(
+  res_msfpop_2[res_msfpop_2$bl==2.25,],
+  aes(
+    x     = ql, 
+    y     = 1-fp_rate,
+    color = as.factor(n)
+  )
+)+
+  geom_line(size = 1)+
+  geom_hline(
+    yintercept = 0.95, 
+    color      = "red", 
+    linetype   = "dashed", 
+    size       = 1
+  )+
+  xlab(expression(gamma))+
+  ylab("1 - propotion of designs with > 0 changepoints")+
+  geom_text(
+    aes(
+      x = x, 
+      y = y
+    ), 
+    label = expression(1-alpha ~"level (0.95)"),
+    color = "red", 
+    size  = 6.5,  
+    data  = data.frame(
+      x = 16, 
+      y = 0.90, 
+      bl = 2
+    )
+  )+
+  labs(color = "n : ") +
+  theme_bw()+
+  theme(
+    text             = element_text(size=25),
+    legend.text      = element_text(size=17),
+    legend.position  = "bottom",
+    strip.background = element_rect(fill="grey95")
+  )
+
+pdf(widt=7, height=7, "figures/figure_2.pdf")
+g2
 dev.off()

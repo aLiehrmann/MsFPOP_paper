@@ -1,5 +1,8 @@
 #------------------------------------------------------------------------------#
-#- This file saves and plots the runtime of Ms.PELT and Ms.FPOP on iid --------#
+#- !! PLEASE CREATE THESE FOLDERS BEFORE running this script : ----------------#
+#- 'figures' and 'data' !! ----------------------------------------------------#
+#------------------------------------------------------------------------------#
+#- This script saves and plots the runtime of Ms.PELT and Ms.FPOP on iid ------#
 #- Gaussian signals with : ----------------------------------------------------#
 #- (1) no changepoint or ------------------------------------------------------#
 #- (2) a number of changepoints that increases linearly with the profile size -#
@@ -8,8 +11,11 @@
 
 source("R/load.R")
 
-#- Simulations on scenario (1) ------------------------------------------------#
+#------------------------------------------------------------------------------#
+#- simulations ----------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
+#- simulations on scenario (1) ------------------------------------------------#
 sim.time.all <- function(n, max=2^7*10^3){
   y   <- rnorm(n)
   tps <- c(NA, NA)
@@ -28,15 +34,14 @@ sim.time.all <- function(n, max=2^7*10^3){
   data.frame(
     n       = n, 
     runtime = tps, 
-    meth    = c("Ms.PELT", "Ms.FPOP"))
+    met    = c("Ms.PELT", "Ms.FPOP"))
 }
 
 ns  <- rep(1000* 2^(0:12), each=1)
 res <- do.call(rbind, lapply(ns, FUN=sim.time.all))
-saveRDS(res,"figures/simple_runtime.rds")
+saveRDS(res,"data/simple_runtime.rds")
 
-#- Simulations on scenario (2) ------------------------------------------------#
-
+#- simulations on scenario (2) ------------------------------------------------#
 sim.time.all2 <- function(n, max=2^13*10^3){
   y   <- rnorm(n)+ rep(c(0, 1), each=1000)
   tps <- c(NA, NA)
@@ -61,9 +66,14 @@ sim.time.all2 <- function(n, max=2^13*10^3){
 
 ns   <- rep(1000* 2^(0:12), each=1)
 res2 <- do.call(rbind, lapply(ns, FUN=sim.time.all2))
-saveRDS(res2,"figures/simple_runtime_2.rds")
+saveRDS(res2,"data/simple_runtime_2.rds")
 
-#- Plot runtime for scenario (1) ----------------------------------------------#
+#------------------------------------------------------------------------------#
+#- figures --------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
+
+#- plot runtime for scenario (1) ----------------------------------------------#
+res <- readRDS("data/simple_runtime.rds")
 
 p1 <- ggplot(
   res, 
@@ -92,7 +102,8 @@ theme(
   legend.position = "bottom"
 )
 
-#- Plot runtime for scenario (2) ----------------------------------------------#
+#- plot runtime for scenario (2) ----------------------------------------------#
+res2 <- readRDS("data/simple_runtime_2.rds")
 
 p2 <- ggplot(
   res2, 
@@ -122,10 +133,9 @@ theme(
   legend.position = "bottom"
 )
 
-#- Plot both scenarios --------------------------------------------------------#
-
+#- plot both scenarios --------------------------------------------------------#
 pdf.options(reset = TRUE, onefile = FALSE)
-pdf("figures/simple_runtime.pdf",height=6.7, width=14.3)
+pdf("figures/figure_1.pdf",height=6.7, width=14.3)
 ggpubr::ggarrange(
   p1, 
   p2, 

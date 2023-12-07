@@ -1,4 +1,7 @@
 #------------------------------------------------------------------------------#
+#- !! PLEASE CREATE THESE FOLDERS BEFORE running this script : ----------------#
+#- 'figures' and 'data' !! ----------------------------------------------------#
+#------------------------------------------------------------------------------#
 #- This file compares the accuracy of Ms.FPOP and FPOP het-like iid -----------#
 #- Gaussian signals (2 changepoint). We make vary the profile size and the ----#
 #- position of the first changepoint. The position of the second changepoint --#
@@ -6,6 +9,11 @@
 #------------------------------------------------------------------------------#
 
 source("R/load.R")
+
+
+#------------------------------------------------------------------------------#
+#- simulations ----------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 #- generate one iid gaussian signal with cp as position of changepoints -------#
 one_signal <- function(
@@ -79,9 +87,11 @@ res <- mclapply(
 
 saveRDS(res, "data/hat_simu.rds")
 
-#- figure ---------------------------------------------------------------------#
-options(scipen=10000)
+#------------------------------------------------------------------------------#
+#- figures --------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
+options(scipen=10000)
 res <- readRDS("data/hat_simu.rds")
 
 #- count replicates with 0, 1, 2 or >2 changepoints ---------------------------#
@@ -119,7 +129,7 @@ res_3 <- do.call(rbind, lapply(
 ))
 res_3$n <- paste0("n = ", res_3$n)
 
-#- figure supp ----------------------------------------------------------------#
+#- figure S4 ------------------------------------------------------------------#
 ggplot(
   data = res_3[res_3$n %in% c("n = 1000", "n = 10000", "n = 100000"),],
   aes(
@@ -154,9 +164,9 @@ theme(
   legend.position  = "bottom",
   strip.background = element_rect(fill="grey95")
 )
-ggsave("figures/supp_hat_simu.jpeg", width=13.5, height=14, dpi=350)
+ggsave("figures/figure_S4.jpeg", width=13.5, height=14, dpi=350)
 
-#- figure main ----------------------------------------------------------------#
+#- figure 4 -------------------------------------------------------------------#
 g1 <- ggplot(
   data = res_3[
     res_3$n %in% c("n = 1000", "n = 10000", "n = 100000") & 
@@ -237,4 +247,4 @@ theme(
 )
 
 ggarrange(g1, g2, common.legend=TRUE, legend="bottom")
-ggsave("figures/main_hat_simu.jpeg", width=12.5, height=15, dpi=350)
+ggsave("figures/figure_4.jpeg", width=12.5, height=15, dpi=350)
