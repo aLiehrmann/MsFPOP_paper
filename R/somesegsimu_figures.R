@@ -12,7 +12,8 @@
 #- The results are precomputed from a modified version of ---------------------#
 #- Simulation_PerfStat.Rmd (see https://github.com/guillemr/SomeSegSimu). -----#
 #- This modified version (m_Simulation_PerfStat.Rmd) needs to be executed from #
-#- SomeSegSimu directory. -----------------------------------------------------#
+#- SomeSegSimu directory. The resulting file "all.rds" needs to be further ----#
+#- moved to the data directory. -----------------------------------------------#
 #------------------------------------------------------------------------------#
 
 
@@ -25,7 +26,6 @@ all <- lapply(
    x$dataset2 <- sapply(strsplit(as.character(x$dataset), "_"), function(x) x[[1]])
    x$difficulty <- as.numeric(sapply(strsplit(as.character(x$dataset), "_"), function(x) x[[3]]))
    x$Method <- as.character(x$Method)
-   #x[x$Method == "PsiFPOP",]$Method <- "Ms.FPOP"
    x
 })
 

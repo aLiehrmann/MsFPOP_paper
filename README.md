@@ -24,6 +24,7 @@ install.packages("ggpubr")
 install.packages("fpopw")
 install.packages("changepoint")
 install.packages("latex2exp")
+install.packages("mosum")
 ```
 
 ## Figures
@@ -69,7 +70,7 @@ This repository contains:
 
 [Liehrmann, A. and Rigaill, G. Ms.Fpop: An Exact and Fast Segmentation
 Algorithm With a Multiscale Penalty (2023)]( 	
-https://doi.org/10.48550/arXiv.2303.08723).
+https://doi.org/10.48550/arXiv.2303.08723)
 
 ## SessionInfo
 

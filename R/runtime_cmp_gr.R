@@ -85,13 +85,14 @@ p1 <- ggplot(
 geom_point() + 
 stat_smooth()+
 scale_x_continuous(
-  trans  = 'log', 
-  labels = scales::number_format(accuracy = 1)
+  trans  = 'log10', 
+  breaks = scales::trans_breaks("log10", function(x) 10^x),
+  labels = scales::trans_format("log10", scales::math_format(10^.x))
 ) + 
 scale_y_continuous(
   "runtime (s)", 
   trans  = 'log', 
-  labels = scales::number_format(accuracy = 0.01)
+  breaks = c(0.02, 0.14, 1.00, 7.39, 54.60)
 ) +
 theme_bw()+
 labs(
@@ -116,13 +117,14 @@ p2 <- ggplot(
 geom_point() + 
 stat_smooth()+
 scale_x_continuous(
-  trans  = 'log', 
-  labels = scales::number_format(accuracy = 1)
+  trans  = 'log10', 
+  breaks = scales::trans_breaks("log10", function(x) 10^x),
+  labels = scales::trans_format("log10", scales::math_format(10^.x))
 ) + 
 scale_y_continuous(
-  "", 
+  "runtime (s)", 
   trans  = 'log', 
-  labels = scales::number_format(accuracy = 0.01)
+  breaks = c(0.02, 0.14, 1.00, 7.39),
 ) +
 theme_bw()+
 labs(
@@ -140,7 +142,7 @@ ggpubr::ggarrange(
   p1, 
   p2, 
   labels = c("A", "B"),
-  font.label = list(size = 35),
+  font.label = list(size = 20),
   common.legend = TRUE, legend = "bottom"
 )
 dev.off()
