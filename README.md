@@ -37,10 +37,11 @@ This repository contains:
     at runtime_cmp_gr.R and runtime_cmp_al.R in the R repository. 
 
 (2) R script to compare the runtime of sampling strategies of future changepoint 
-    candidates in Ms.FPOP.
+    candidates and the runtime under different minimum segment length constraints
+    in Ms.FPOP.
 
-    => To reproduce Figure S2, you should look at runtime_cmp_al.R in the R 
-       repository.
+    => To reproduce Figure S2 and Figure S4 you should look at runtime_cmp_al.R 
+    in the R repository.
     
 (3) R script to calibrate the constants ($\gamma$ and $\beta$) of the multiscale
     penalty. 
@@ -51,26 +52,25 @@ This repository contains:
 (4) R script to compare Ms.FPOP (multiscale penalty) and FPOP (BIC penalty) on 
     simulated step-like profiles.
 
-    => To reproduce Figure S5, you should look at step_simu.R in the R 
+    => To reproduce Figure S6, you should look at step_simu.R in the R 
        repository.
     
 (5) R script to compare Ms.FPOP (multiscale penalty) and FPOP (BIC penalty) on 
     simulated hat-like profiles.
 
-    => To reproduce Figure 4 and Figure S4, you should look at hat_simu.R in 
+    => To reproduce Figure 4 and Figure S5, you should look at hat_simu.R in 
        the R repository.
 
 (6) R scripts to compare MOSUM, Ms.FPOP (multiscale penalty) and FPOP (BIC penalty)
     on an extanded range of simulations.
     
-    => To reproduce Figure 5, Figures G. and Figures H., you should look at 
+    => To reproduce Figure 5, Figures S7-13, you should look at 
        m_simulated_PerfStat.Rmd and somesegsimu_figures.R in the R repository.
     
 ## References
 
 [Liehrmann, A. and Rigaill, G. Ms.Fpop: An Exact and Fast Segmentation
-Algorithm With a Multiscale Penalty (2023)]( 	
-https://doi.org/10.48550/arXiv.2303.08723)
+Algorithm With a Multiscale Penalty (2023)](https://doi.org/10.48550/arXiv.2303.08723)
 
 ## SessionInfo
 

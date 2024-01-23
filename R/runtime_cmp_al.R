@@ -60,6 +60,30 @@ all_methods <- list(
       sampling_method_parameter = 3
     )
   },
+  msFPOP_min2 = function(y) {
+    MsFPOP(
+      y     = y,
+      beta  = 2.25,
+      alpha = 9+2.25*log(length(y)),
+      min_segment = 1
+    )
+  },
+  msFPOP_min3 = function(y) {
+    MsFPOP(
+      y     = y,
+      beta  = 2.25,
+      alpha = 9+2.25*log(length(y)),
+      min_segment = 2
+    )
+  },
+  msFPOP_min4 = function(y) {
+    MsFPOP(
+      y     = y,
+      beta  = 2.25,
+      alpha = 9+2.25*log(length(y)),
+      min_segment = 3
+    )
+  },
   msPELT = function(y) {
     MsPELT(
       y     = y,
@@ -118,7 +142,10 @@ nb_seeds <- length(rep)*length(K)
 method   <- c(
   "msFPOP",
   "PELT",
-  "FPOP"
+  "FPOP",
+  "msFPOP_min2",
+  "msFPOP_min3",
+  "msFPOP_min4",
 )
 params_2   <- expand.grid(
   n, 
@@ -167,7 +194,10 @@ all_res$method <- factor(
     "msFPOP_all", 
     "PELT", 
     "FPOP", 
-    "msPELT"
+    "msPELT",
+    "msFPOP_min2",
+    "msFPOP_min3",
+    "msFPOP_min4",
   )
 )
 
@@ -319,4 +349,51 @@ guides(col=guide_legend(nrow = 4))
 
 pdf("figures/figure_S2.pdf",width=10, height=9.5)
 g3
+dev.off()
+
+#- figure S4 ------------------------------------------------------------------#
+g4 <- ggplot(
+  data = all_res[all_res$n==10^6 & all_res$method %in% c("msFPOP","msFPOP_min2","msFPOP_min3", "msFPOP_min4"),],
+  aes(
+    x     = K, 
+    y     = runtime, 
+    color = method
+  )
+)+
+geom_point(alpha = 0.05)+
+geom_smooth(
+ se = TRUE
+)+
+scale_y_continuous(
+  tr = "log10", 
+  "runtime (s)"
+)+
+scale_x_continuous(
+  tr = "log10"
+)+
+xlab(
+  "true number of changepoints"
+)+
+labs(
+  color    = "minimum segment length : "
+) +
+scale_color_discrete(
+  labels=c(
+    "none"
+    "2",
+    "3",
+    "4"
+  )
+) +
+theme_bw()+
+theme(
+  text = element_text(size=25),
+  legend.text = element_text(size=15),
+  legend.title = element_text(size=20),
+  legend.position="bottom"
+)+
+guides(col=guide_legend(nrow = 4))
+
+pdf("figures/figure_S4.pdf",width=10, height=9.5)
+g4
 dev.off()

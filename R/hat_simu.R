@@ -129,7 +129,7 @@ res_3 <- do.call(rbind, lapply(
 ))
 res_3$n <- paste0("n = ", res_3$n)
 
-#- figure S4 ------------------------------------------------------------------#
+#- figure S5 ------------------------------------------------------------------#
 ggplot(
   data = res_3[res_3$n %in% c("n = 1000", "n = 10000", "n = 100000"),],
   aes(
@@ -164,7 +164,7 @@ theme(
   legend.position  = "bottom",
   strip.background = element_rect(fill="grey95")
 )
-ggsave("figures/figure_S4.jpeg", width=13.5, height=14, dpi=350)
+ggsave("figures/figure_S5.jpeg", width=13.5, height=14, dpi=350)
 
 #- figure 4 -------------------------------------------------------------------#
 g1 <- ggplot(

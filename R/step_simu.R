@@ -147,4 +147,4 @@ theme(
   legend.position = "bottom",
   strip.background = element_rect(fill="grey95")
 )
-ggsave("figures/figure_S5.jpeg", width=12, height=13, dpi=350)
+ggsave("figures/figure_S6.jpeg", width=12, height=13, dpi=350)
